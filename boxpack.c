@@ -15,7 +15,7 @@
 /* STRUCTURES */
 typedef struct
 {
-    size_t id;
+    int id;
     int capacity;
     
     int numberOfBoxes;
@@ -76,7 +76,27 @@ int main(int argc, char** argv)
     
     // allocate memory for Containers
     Container *pContainers = malloc( sizeof(Container) * numberOfContainers);  
+    
+    int i;
+    for (i = 0; i < numberOfContainers; i++)
+    {
+        pContainers[i].numberOfBoxes = 0;
+        pContainers[i].boxSizes = malloc(sizeof(int) * numberOfOnlyBoxSizes);  // allocate enough memory so no realloc is needed
+    }
+
     pContainers = processInputFile(&pInputFile, pContainers);       // init Containers
+    
+    if (pContainers == NULL)
+    {
+        for (i = 0; i < numberOfContainers; i++)
+        {
+            free(pContainers[i].boxSizes);
+        }
+    
+        free(pContainers);
+        return 0; 
+    }
+    
     fclose(pInputFile);                                             // close input file
     
     // Output
@@ -84,8 +104,10 @@ int main(int argc, char** argv)
     writeToOutputFile(pOutputFilename, &pOutputFile, pContainers);
     fclose(pOutputFile);   // close output file
     
-    int i;
-    for (i = 0; i < numberOfContainers; i++) { free(pContainers[i].boxSizes); }
+    for (i = 0; i < numberOfContainers; i++)
+    {
+        free(pContainers[i].boxSizes);
+    }
     
     free(pContainers);
     return 0;
@@ -302,6 +324,7 @@ void getCounts(FILE **pInputFile)
     
     free(pLine);
     free(pTmpLine);
+    free(pLineWithContainers);
 }
 
 /**
@@ -335,8 +358,8 @@ Container* processInputFile(FILE **pInputFile, Container *pContainers)
             // Set Container
             pContainers[stringCounter].id = stringCounter;
             pContainers[stringCounter].capacity = strtol(pLineSeperated, NULL, 10);
-            pContainers[stringCounter].numberOfBoxes = 0;
-            pContainers[stringCounter].boxSizes = malloc(sizeof(int) * numberOfOnlyBoxSizes);  // allocate enough memory so no realloc is needed
+            //pContainers[stringCounter].numberOfBoxes = 0;
+            //pContainers[stringCounter].boxSizes = malloc(sizeof(int) * numberOfOnlyBoxSizes);  // allocate enough memory so no realloc is needed
             pContainers[stringCounter].wasChecked = 1;
             
             stringCounter = inlineAddition(stringCounter, 1);
@@ -350,8 +373,8 @@ Container* processInputFile(FILE **pInputFile, Container *pContainers)
                 
                 pContainers[stringCounter].id = stringCounter;
                 pContainers[stringCounter].capacity = strtol(pLineSeperated, NULL, 10);
-                pContainers[stringCounter].numberOfBoxes = 0;
-                pContainers[stringCounter].boxSizes = malloc(sizeof(int) * numberOfOnlyBoxSizes);  // allocate enough memory so no realloc is needed
+                //pContainers[stringCounter].numberOfBoxes = 0;
+                //pContainers[stringCounter].boxSizes = malloc(sizeof(int) * numberOfOnlyBoxSizes);  // allocate enough memory so no realloc is needed
                 pContainers[stringCounter].wasChecked = 1;
                     
                 stringCounter = inlineAddition(stringCounter, 1);
@@ -370,6 +393,8 @@ Container* processInputFile(FILE **pInputFile, Container *pContainers)
             pLineSeperated = strtok(pTmpLine, " ");
             
             pContainers = fitBoxes(pLineSeperated, pContainers);
+            if (pContainers == NULL) return NULL;
+            
             stringCounter = inlineAddition(stringCounter, 1);
             
             // set rest of Containers
@@ -380,6 +405,7 @@ Container* processInputFile(FILE **pInputFile, Container *pContainers)
                 pLineSeperated = strtok(NULL, " ");
                 
                 pContainers = fitBoxes(pLineSeperated, pContainers);
+                if (pContainers == NULL) return NULL;
                 stringCounter = inlineAddition(stringCounter, 1);
             }
         }
@@ -387,6 +413,7 @@ Container* processInputFile(FILE **pInputFile, Container *pContainers)
     
     free(pLine);
     free(pTmpLine);
+    //free(pLineSeperated);
     
     return pContainers;
 }
@@ -435,7 +462,8 @@ Container* fitBoxes(char *pLineSeperated, Container *pContainers)
                 if (foundMatch == 1)
                 {
                     printf("validation failed\n");
-                    exit(1);
+                    return NULL;
+                    //exit(1);
                 }
             }
             // best fit is set
@@ -479,7 +507,8 @@ Container* fitBoxes(char *pLineSeperated, Container *pContainers)
                 else
                 {
                     printf("validation failed\n");
-                    exit(1);
+                    return NULL;
+                    //exit(1);
                 }
             }
             // next fit is set
@@ -512,7 +541,8 @@ Container* fitBoxes(char *pLineSeperated, Container *pContainers)
                         else
                         {
                             printf("validation failed\n");
-                            exit(1);
+                            return NULL;
+                            //exit(1);
                         }
                     }
                     
@@ -573,7 +603,8 @@ Container* fitBoxes(char *pLineSeperated, Container *pContainers)
                 else
                 {
                     printf("validation failed\n");
-                    exit(1);
+                    return NULL;
+                    //exit(1);
                 }
             }
         }

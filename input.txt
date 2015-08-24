@@ -1,2 +1,2 @@
-10 10 10
-bf 6 ff 8 awf 1 nf 5
+10 21 42 230 140 11 103
+11 87 20 bf 90 nf 18 89 2 bf 1 nf 91 34 awf 50 1 nf 4 9 awf 5 bf 7 nf 2 awf 5
