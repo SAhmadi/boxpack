@@ -38,10 +38,9 @@ size_t lastSelectedContainerId = 0;
 FitTypes fitType = FIRST_FIT;
 
 /* PROTOTYPES */
-int inlineAddition(int number1, int number2);
-int inlineSubtraction(int number1, int number2);
+int inlineAddition(int summand1, int summand2);
+int inlineSubtraction(int minuend, int subtrahend);
 
-void openInputFile(char* pInputFilename, FILE **pInputFile);
 void getCounts(FILE **pInputFile);
 
 Container* processInputFile(FILE **pInputFile, Container *pContainers);
@@ -61,7 +60,7 @@ int main(int argc, char** argv)
     // check if correctly executed
     if (argc != 3)
     {
-        fputs("Input and output file needed!", stderr);
+        fputs("Input and output files needed!", stderr);
         return 1;
     }
     
@@ -70,40 +69,40 @@ int main(int argc, char** argv)
     char *pOutputFilename = argv[2];
     
     /* PROCESS INPUT FILE */
-    FILE *pInputFile = NULL;    
-    openInputFile(pInputFilename, &pInputFile);     // open input file
-    getCounts(&pInputFile);                         // get Container count and Box data count
+    FILE *pInputFile = NULL;  
+      
+    // open input file
+    pInputFile = fopen(pInputFilename, "r");
+    if (pInputFile == NULL)
+    {
+        fputs("Error: Couldn't open input file!\n", stderr);
+        return 1;
+    }
+    
+    // get Container count and Box data count
+    getCounts(&pInputFile);
     
     // allocate memory for Containers
-    Container *pContainers = malloc( sizeof(Container) * numberOfContainers);  
+    Container *pContainers = malloc( sizeof(Container) * numberOfContainers);
     
-    int i;
+    // set boxSize property of Containers
+    size_t i;
     for (i = 0; i < numberOfContainers; i++)
     {
         pContainers[i].numberOfBoxes = 0;
         pContainers[i].boxSizes = malloc(sizeof(int) * numberOfOnlyBoxSizes);  // allocate enough memory so no realloc is needed
     }
-
     pContainers = processInputFile(&pInputFile, pContainers);       // init Containers
-    
-    if (pContainers == NULL)
-    {
-        for (i = 0; i < numberOfContainers; i++)
-        {
-            free(pContainers[i].boxSizes);
-        }
-    
-        free(pContainers);
-        return 0; 
-    }
-    
-    fclose(pInputFile);                                             // close input file
+   
+    // close input file
+    fclose(pInputFile);
     
     // Output
     FILE *pOutputFile = NULL;
     writeToOutputFile(pOutputFilename, &pOutputFile, pContainers);
     fclose(pOutputFile);   // close output file
     
+    // free Containers
     for (i = 0; i < numberOfContainers; i++)
     {
         free(pContainers[i].boxSizes);
@@ -114,7 +113,7 @@ int main(int argc, char** argv)
 }
 
 /**
- * Addition of two integers in Assembly.
+ * Addition of two integers in Assembler-Language.
  * @param summand1      First summand
  * @param summand2      Second summand
  * @return Sum of two integers.
@@ -128,11 +127,11 @@ int inlineAddition(int summand1, int summand2)
         : "a" (summand1), "b" (summand2)
     );
     
-    return summand1; // Sum is saved in old var
+    return summand1; // Sum is saved in old variable
 }
 
 /**
- * Subtraction of two integers in Assembly.
+ * Subtraction of two integers in Assembler-Language.
  * @param minuend           Minuend
  * @param subtrahend        Subtrahend
  * @return Difference of two integers.
@@ -146,7 +145,7 @@ int inlineSubtraction(int minuend, int subtrahend)
         : "a" (minuend), "b" (subtrahend)
     );
     
-    return minuend; // Difference is saved in old var
+    return minuend; // Difference is saved in old variable
 }
 
 /**
@@ -166,11 +165,13 @@ void writeToOutputFile(char* pOutputFilename, FILE **pOutputFile, Container *pCo
         exit(1);
     }
     
-    int i;
+    size_t i;
     for (i = 0; i < numberOfContainers; i++)
     {
+        // print ID
         fprintf(*pOutputFile, "%d: ", pContainers[i].id);
         
+        // print "0" for no boxes
         if (pContainers[i].numberOfBoxes == 0)
         {
             if (i == numberOfContainers - 1) 
@@ -185,29 +186,15 @@ void writeToOutputFile(char* pOutputFilename, FILE **pOutputFile, Container *pCo
             }
         }
         
+        // print all containing boxes
         int j;
         for (j = 0; j < pContainers[i].numberOfBoxes; j++)
         {
-            if (j == pContainers[i].numberOfBoxes - 1) fprintf(*pOutputFile, "%d\n", pContainers[i].boxSizes[j]);
-            else fprintf(*pOutputFile, "%d ", pContainers[i].boxSizes[j]);
+            if (j == pContainers[i].numberOfBoxes - 1)
+                fprintf(*pOutputFile, "%d\n", pContainers[i].boxSizes[j]);
+            else
+                fprintf(*pOutputFile, "%d ", pContainers[i].boxSizes[j]);
         }
-    }
-}
-
-/**
- * Open input file.
- * @param pInputFilename        Filename
- * @param pInputFile            Input file
- */
-void openInputFile(char* pInputFilename, FILE **pInputFile)
-{
-    // open input file
-    *pInputFile = fopen(pInputFilename, "r");
-    
-    if (*pInputFile == NULL)
-    {
-        fputs("Error: Couldn't open input file!\n", stderr);
-        exit(1);
     }
 }
 
@@ -220,11 +207,12 @@ void getCounts(FILE **pInputFile)
     // read input file
     char *pLine = NULL;
     char *pTmpLine;
-    char *pLineWithContainers = NULL;
+    char *pLineSeperated = NULL;
     size_t lineLength = 0;
     
     char rowCounter = 0;
     
+    // Iterate through lines
     while ((getline(&pLine, &lineLength, *pInputFile)) != -1)
     {
         if (rowCounter == 2)
@@ -233,38 +221,41 @@ void getCounts(FILE **pInputFile)
             exit(1);
         }
         
-        // count Containers
+        // count Containers in first row
         if (rowCounter == 0)
         {
-            pTmpLine = malloc(sizeof(char) * lineLength);    // so pLine doesnt get overidden
+            pTmpLine = malloc(sizeof(char) * lineLength);    // so pLine doesnt get overidden by strcpy
             strcpy(pTmpLine, pLine);
             
-            pLineWithContainers = strtok(pTmpLine, " \n");
-
-            int i;
-            for (i = 0; i < strlen(pLineWithContainers); i++)
+            // seperate line and iterate through FIRST element
+            // needs to be handled manually because of strtok!
+            pLineSeperated = strtok(pTmpLine, " \n");   
+            size_t i;
+            for (i = 0; i < strlen(pLineSeperated); i++)
             {
-                if (!isdigit(pLineWithContainers[i]))
+                if (!isdigit(pLineSeperated[i]))
                 {
                     fputs("Error: Invalid Container size! Only Integers allowed.\n", stderr);
                     exit(1);
                 }
             }
 
+            // increment number of containers
             numberOfContainers = inlineAddition(numberOfContainers, 1);
             
-            while (pLineWithContainers != NULL)
+            // sperate line and iterate through REST elements
+            while (pLineSeperated != NULL)
             {
-                pLineWithContainers = strtok(NULL, " \n");
+                pLineSeperated = strtok(NULL, " \n");
                 
-                if (pLineWithContainers != NULL)
+                if (pLineSeperated != NULL)
                 {   
                     numberOfContainers = inlineAddition(numberOfContainers, 1);
 
-                    int i;
-                    for (i = 0; i < strlen(pLineWithContainers); i++)
+                    size_t j;
+                    for (j = 0; j < strlen(pLineSeperated); j++)
                     {
-                        if (!isdigit(pLineWithContainers[i]))
+                        if (!isdigit(pLineSeperated[j]))
                         {
                             fputs("Error: Invalid container size! Only Integers allowed.\n", stderr);
                             exit(1);
@@ -276,42 +267,64 @@ void getCounts(FILE **pInputFile)
             rowCounter++;  // Return when first line processed
             free(pTmpLine);
         }
-        // countBox Data
+        // count Box-Data in second line
         else
         {
-            pTmpLine = malloc(sizeof(char) * lineLength);    // so pLine doesnt get overidden
+            pTmpLine = malloc(sizeof(char) * lineLength);    // so pLine doesnt get overidden by strcpy
             strcpy(pTmpLine, pLine);
             
-            pLineWithContainers = strtok(pTmpLine, " \n");
+            // seperate line to get FIRST element
+            // needs to be handled manually because of strtok!
+            pLineSeperated = strtok(pTmpLine, " \n");
+            
+            // increment number of box data
             numberOfBoxData = inlineAddition(numberOfBoxData, 1);
 
             // check for valid input
-            int i;
-            for (i = 0; i < strlen(pLineWithContainers); i++)
-            {
-                if (!isdigit(pLineWithContainers[i]))
+            size_t i;
+            for (i = 0; i < strlen(pLineSeperated); i++)
+            {             
+                if (!isdigit(pLineSeperated[i]))
                 {
-                    if (strcmp(pLineWithContainers, "ff") != 0 && strcmp(pLineWithContainers, "bf") != 0
-                        && strcmp(pLineWithContainers, "nf") != 0 && strcmp(pLineWithContainers, "awf") != 0)
+                    if (strcmp(pLineSeperated, "ff") != 0 && strcmp(pLineSeperated, "bf") != 0
+                        && strcmp(pLineSeperated, "nf") != 0 && strcmp(pLineSeperated, "awf") != 0)
                     {
-                        fputs("Error: Invalid box data! Only Integers or supported fit-types allowed.\n", stderr);
+                        fputs("Error: Invalid box data! Only supported fit-types allowed.\n", stderr);
                         exit(1);
                     }
                 }
             }
             
-            if (strcmp(pLineWithContainers, "ff") != 0 && strcmp(pLineWithContainers, "bf") != 0
-                && strcmp(pLineWithContainers, "nf") != 0 && strcmp(pLineWithContainers, "awf") != 0) numberOfOnlyBoxSizes = inlineAddition(numberOfOnlyBoxSizes, 1);
-            
-            while (pLineWithContainers != NULL)
+            // check for valid box-size
+            if (strcmp(pLineSeperated, "ff") != 0 && strcmp(pLineSeperated, "bf") != 0
+                        && strcmp(pLineSeperated, "nf") != 0 && strcmp(pLineSeperated, "awf") != 0
+                        && strtol(pLineSeperated, NULL, 10) < 0) 
             {
-                pLineWithContainers = strtok(NULL, " \n");
+                fputs("Error: Invalid box data! Only Integers > 0 allowed.\n", stderr);
+                exit(1);
+            }
+            else
+                numberOfOnlyBoxSizes = inlineAddition(numberOfOnlyBoxSizes, 1);
             
+            // seperate line and iterate through REST elements
+            while (pLineSeperated != NULL)
+            {
+                pLineSeperated = strtok(NULL, " \n");
+            
+                // increment number of box-data and only-box-sizes
                 numberOfBoxData = inlineAddition(numberOfBoxData, 1);
-                if (pLineWithContainers != NULL)
+                if (pLineSeperated != NULL)
                 {                    
-                    if (strcmp(pLineWithContainers, "ff") != 0 && strcmp(pLineWithContainers, "bf") != 0
-                        && strcmp(pLineWithContainers, "nf") != 0 && strcmp(pLineWithContainers, "awf") != 0) numberOfOnlyBoxSizes = inlineAddition(numberOfOnlyBoxSizes, 1);
+                    // check for valid box-size
+                    if (strcmp(pLineSeperated, "ff") != 0 && strcmp(pLineSeperated, "bf") != 0
+                                && strcmp(pLineSeperated, "nf") != 0 && strcmp(pLineSeperated, "awf") != 0
+                                && strtol(pLineSeperated, NULL, 10) < 0) 
+                    {
+                        fputs("Error: Invalid box data! Only Integers > 0 allowed.\n", stderr);
+                        exit(1);
+                    }
+                    else
+                        numberOfOnlyBoxSizes = inlineAddition(numberOfOnlyBoxSizes, 1);
                 }
             }
             numberOfBoxData = inlineSubtraction(numberOfBoxData, 1);    // subtract one because last data equals \0
@@ -324,7 +337,7 @@ void getCounts(FILE **pInputFile)
     
     free(pLine);
     free(pTmpLine);
-    free(pLineWithContainers);
+    free(pLineSeperated);
 }
 
 /**
@@ -355,13 +368,11 @@ Container* processInputFile(FILE **pInputFile, Container *pContainers)
             // set first Container manually
             pLineSeperated = strtok(pTmpLine, " \n");
             
-            // Set Container
             pContainers[stringCounter].id = stringCounter;
             pContainers[stringCounter].capacity = strtol(pLineSeperated, NULL, 10);
-            //pContainers[stringCounter].numberOfBoxes = 0;
-            //pContainers[stringCounter].boxSizes = malloc(sizeof(int) * numberOfOnlyBoxSizes);  // allocate enough memory so no realloc is needed
             pContainers[stringCounter].wasChecked = 1;
             
+            // increment counter
             stringCounter = inlineAddition(stringCounter, 1);
             
             // set rest of Containers
@@ -373,8 +384,6 @@ Container* processInputFile(FILE **pInputFile, Container *pContainers)
                 
                 pContainers[stringCounter].id = stringCounter;
                 pContainers[stringCounter].capacity = strtol(pLineSeperated, NULL, 10);
-                //pContainers[stringCounter].numberOfBoxes = 0;
-                //pContainers[stringCounter].boxSizes = malloc(sizeof(int) * numberOfOnlyBoxSizes);  // allocate enough memory so no realloc is needed
                 pContainers[stringCounter].wasChecked = 1;
                     
                 stringCounter = inlineAddition(stringCounter, 1);
@@ -391,10 +400,8 @@ Container* processInputFile(FILE **pInputFile, Container *pContainers)
             strcpy(pTmpLine, pLine);
             
             pLineSeperated = strtok(pTmpLine, " ");
-            
             pContainers = fitBoxes(pLineSeperated, pContainers);
-            if (pContainers == NULL) return NULL;
-            
+
             stringCounter = inlineAddition(stringCounter, 1);
             
             // set rest of Containers
@@ -403,17 +410,17 @@ Container* processInputFile(FILE **pInputFile, Container *pContainers)
                 if (stringCounter >= numberOfBoxData) break;
                 
                 pLineSeperated = strtok(NULL, " ");
-                
                 pContainers = fitBoxes(pLineSeperated, pContainers);
-                if (pContainers == NULL) return NULL;
+                
                 stringCounter = inlineAddition(stringCounter, 1);
             }
+            
+            free(pTmpLine);
         }
     }
     
     free(pLine);
-    free(pTmpLine);
-    //free(pLineSeperated);
+    //free(pTmpLine);
     
     return pContainers;
 }
@@ -434,98 +441,104 @@ Container* fitBoxes(char *pLineSeperated, Container *pContainers)
     if (strcmp(pLineSeperated, "ff") != 0 && strcmp(pLineSeperated, "bf") != 0
         && strcmp(pLineSeperated, "nf") != 0 && strcmp(pLineSeperated, "awf") != 0)
     {
-        if (atoi(pLineSeperated) > -1)
+        if (strtol(pLineSeperated, NULL, 10) > -1)
         {
             // first fit is set
             if (fitType == FIRST_FIT)
             {
-                char foundMatch = 1;
+                char foundMatch = 1;    // 1 == false, 0 == true
                 
-                int i;
+                size_t i;
                 for (i = 0; i < numberOfContainers; i++)
                 {
                     pContainers[i].wasChecked = 1;  // unset for NEXT_FIT
                     
-                    if (pContainers[i].capacity >= atoi(pLineSeperated))
+                    // successfull fit
+                    if (pContainers[i].capacity >= strtol(pLineSeperated, NULL, 10))
                     {
                         foundMatch = 0;
                         
-                        pContainers[i].capacity = inlineSubtraction(pContainers[i].capacity, atoi(pLineSeperated));
+                        pContainers[i].capacity = inlineSubtraction(pContainers[i].capacity, strtol(pLineSeperated, NULL, 10));
                         pContainers[i].numberOfBoxes = inlineAddition(pContainers[i].numberOfBoxes, 1);
-                        pContainers[i].boxSizes[pContainers[i].numberOfBoxes - 1] = atoi(pLineSeperated);
+                        pContainers[i].boxSizes[pContainers[i].numberOfBoxes - 1] = strtol(pLineSeperated, NULL, 10);
                         
+                        // save selectionID for NEXT-FIT
                         lastSelectedContainerId = pContainers[i].id;
                         break;
                     }
                 }
 
+                // failed fit
                 if (foundMatch == 1)
                 {
                     printf("validation failed\n");
-                    return NULL;
-                    //exit(1);
+                    exit(1);
                 }
             }
             // best fit is set
             else if (fitType == BEST_FIT)
             {
                 char firstIteration = 0;
-                size_t selectedContainerCapacity;
-                size_t selectedContainerId;
+                int selectedContainerCapacity = pContainers[0].capacity;
+                int selectedContainerId = pContainers[0].id;
                 
-                int i;
+                size_t i;
                 for (i = 0; i < numberOfContainers; i++)
                 {
                     pContainers[i].wasChecked = 1;  // unset for NEXT_FIT
                     
-                    if (pContainers[i].capacity - atoi(pLineSeperated) >= 0)
+                    if (pContainers[i].capacity - strtol(pLineSeperated, NULL, 10) >= 0)
                     {
-                        if (firstIteration == 0)
+                        if (firstIteration == 0)    // init selector variables in first iteration
                         {
                             selectedContainerId = pContainers[i].id;
                             selectedContainerCapacity = pContainers[i].capacity;
                             firstIteration++;
                         }
-                        else if (selectedContainerCapacity == pContainers[i].capacity)
+                        else if (selectedContainerCapacity == pContainers[i].capacity)  // if capacity is equal choose current selection
                             continue;
-                        else
+                        else    // choose the smaller capacity
                         {
                             selectedContainerCapacity = min(selectedContainerCapacity, pContainers[i].capacity);
-                            if (selectedContainerCapacity == pContainers[i].capacity) selectedContainerId = pContainers[i].id;
+                            if (selectedContainerCapacity == pContainers[i].capacity) 
+                                selectedContainerId = pContainers[i].id;
                         }
                     }
                 }
                 
-                if (pContainers[selectedContainerId].capacity - atoi(pLineSeperated) >= 0)
+                // successfull fit
+                if (pContainers[selectedContainerId].capacity - strtol(pLineSeperated, NULL, 10) >= 0)
                 {
-                    pContainers[selectedContainerId].capacity = inlineSubtraction(pContainers[selectedContainerId].capacity, atoi(pLineSeperated));
+                    pContainers[selectedContainerId].capacity = inlineSubtraction(pContainers[selectedContainerId].capacity, strtol(pLineSeperated, NULL, 10));
                     pContainers[selectedContainerId].numberOfBoxes++;
-                    pContainers[selectedContainerId].boxSizes[pContainers[selectedContainerId].numberOfBoxes - 1] = atoi(pLineSeperated);
+                    pContainers[selectedContainerId].boxSizes[pContainers[selectedContainerId].numberOfBoxes - 1] = strtol(pLineSeperated, NULL, 10);
                     
+                    // save selectionID for NEXT-FIT
                     lastSelectedContainerId = pContainers[selectedContainerId].id;
                 }
+                // failed fit
                 else
                 {
                     printf("validation failed\n");
-                    return NULL;
-                    //exit(1);
+                    exit(1);
                 }
             }
             // next fit is set
             else if (fitType == NEXT_FIT)
             {
-                if (pContainers[lastSelectedContainerId].capacity >= atoi(pLineSeperated))
+                // next fit is already selected
+                if (pContainers[lastSelectedContainerId].capacity >= strtol(pLineSeperated, NULL, 10))
                 {
-                    pContainers[lastSelectedContainerId].capacity = inlineSubtraction(pContainers[lastSelectedContainerId].capacity, atoi(pLineSeperated));
+                    pContainers[lastSelectedContainerId].capacity = inlineSubtraction(pContainers[lastSelectedContainerId].capacity, strtol(pLineSeperated, NULL, 10));
                     pContainers[lastSelectedContainerId].numberOfBoxes++;
-                    pContainers[lastSelectedContainerId].boxSizes[pContainers[lastSelectedContainerId].numberOfBoxes - 1] = atoi(pLineSeperated);
+                    pContainers[lastSelectedContainerId].boxSizes[pContainers[lastSelectedContainerId].numberOfBoxes - 1] = strtol(pLineSeperated, NULL, 10);
                 }
                 else
                 {
                     char allContainersChecked = 1;
-                    while (pContainers[lastSelectedContainerId].capacity < atoi(pLineSeperated))
+                    while (pContainers[lastSelectedContainerId].capacity < strtol(pLineSeperated, NULL, 10))
                     {
-                        int i;
+                        size_t i;
                         for (i = 0; i < numberOfContainers; i++)
                         {
                             // if not all containers checked continue with search
@@ -533,20 +546,22 @@ Container* fitBoxes(char *pLineSeperated, Container *pContainers)
                             else allContainersChecked = 0;
                         }
                         
+                        // search new nect fit
                         if (allContainersChecked == 1)
                         {
                             lastSelectedContainerId = ((lastSelectedContainerId + 1) % numberOfContainers < numberOfContainers) ? (lastSelectedContainerId + 1) % numberOfContainers : 0;
                             pContainers[lastSelectedContainerId].wasChecked = 0;
                         }
+                        // failed fit
                         else
                         {
                             printf("validation failed\n");
-                            return NULL;
-                            //exit(1);
+                            exit(1);
                         }
                     }
                     
-                    if (pContainers[lastSelectedContainerId].capacity - atoi(pLineSeperated) >= 0)
+                    // successfull fit
+                    if (pContainers[lastSelectedContainerId].capacity - strtol(pLineSeperated, NULL, 10) >= 0)
                     {
                         pContainers[lastSelectedContainerId].capacity = inlineSubtraction(pContainers[lastSelectedContainerId].capacity, atoi(pLineSeperated));
                         pContainers[lastSelectedContainerId].numberOfBoxes++;
@@ -557,14 +572,14 @@ Container* fitBoxes(char *pLineSeperated, Container *pContainers)
             // almost worst fit is set
             else if (fitType == ALMOST_WORST_FIT)
             {
-                size_t maxContainerCapacity = pContainers[0].capacity;
-                size_t idOfMaxContainerCapacity = pContainers[0].id;
+                int maxContainerCapacity = pContainers[0].capacity;
+                int idOfMaxContainerCapacity = pContainers[0].id;
                 
-                size_t secondMaxContainerCapacity = pContainers[0].id;
-                size_t idOfSecondMaxContainerCapacity = pContainers[0].capacity;
+                int secondMaxContainerCapacity = pContainers[0].id;
+                int idOfSecondMaxContainerCapacity = pContainers[0].capacity;
                 
                 // Max Capacity
-                int i;
+                size_t i;
                 for (i = 0; i < numberOfContainers; i++)
                 {
                     pContainers[i].wasChecked = 1;  // unset for NEXT_FIT
@@ -584,15 +599,18 @@ Container* fitBoxes(char *pLineSeperated, Container *pContainers)
                         idOfSecondMaxContainerCapacity = pContainers[i].id;
                 }
                 
-                if (pContainers[idOfSecondMaxContainerCapacity].capacity >= atoi(pLineSeperated))
+                // store box in second-max-container
+                if (pContainers[idOfSecondMaxContainerCapacity].capacity >= strtol(pLineSeperated, NULL, 10))
                 {
+                    // save current selectionID for NEXT-FIT
                     lastSelectedContainerId = idOfSecondMaxContainerCapacity;
                     
                     pContainers[idOfSecondMaxContainerCapacity].capacity = inlineSubtraction(pContainers[idOfSecondMaxContainerCapacity].capacity, atoi(pLineSeperated));
                     pContainers[idOfSecondMaxContainerCapacity].numberOfBoxes++;
                     pContainers[idOfSecondMaxContainerCapacity].boxSizes[pContainers[idOfSecondMaxContainerCapacity].numberOfBoxes - 1] = atoi(pLineSeperated);
                 }
-                else if (pContainers[idOfMaxContainerCapacity].capacity >= atoi(pLineSeperated))
+                // store box in max-container 
+                else if (pContainers[idOfMaxContainerCapacity].capacity >= strtol(pLineSeperated, NULL, 10))
                 {
                     lastSelectedContainerId = idOfMaxContainerCapacity;
                     
@@ -600,15 +618,14 @@ Container* fitBoxes(char *pLineSeperated, Container *pContainers)
                     pContainers[idOfMaxContainerCapacity].numberOfBoxes++;
                     pContainers[idOfMaxContainerCapacity].boxSizes[pContainers[idOfMaxContainerCapacity].numberOfBoxes - 1] = atoi(pLineSeperated);
                 }
+                // failed fit
                 else
                 {
                     printf("validation failed\n");
-                    return NULL;
-                    //exit(1);
+                    exit(1);
                 }
             }
         }
-        else printf("Warning: Boxsize %s is negative and will be ignored in sorting process!\n", pLineSeperated);
     }
     
     return pContainers;
