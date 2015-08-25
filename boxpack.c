@@ -15,11 +15,11 @@
 /* STRUCTURES */
 typedef struct
 {
-    unsigned long id;
-    unsigned long capacity;
+    long id;
+    long capacity;
     
-    unsigned long numberOfBoxes;
-    unsigned long *boxSizes;
+    long numberOfBoxes;
+    long *boxSizes;
 
     char wasChecked;    // 1 == false && 0 == true
 } Container;
@@ -31,10 +31,10 @@ typedef enum
 } FitTypes;
 
 /* GLOBAL */
-unsigned long numberOfContainers = 0;
-unsigned long numberOfBoxData = 0;
-unsigned long numberOfOnlyBoxSizes = 0;
-unsigned long lastSelectedContainerId = 0;
+long numberOfContainers = 0;
+long numberOfBoxData = 0;
+long numberOfOnlyBoxSizes = 0;
+long lastSelectedContainerId = 0;
 FitTypes fitType = FIRST_FIT;
 
 /* PROTOTYPES */
@@ -169,7 +169,7 @@ void writeToOutputFile(char* pOutputFilename, FILE **pOutputFile, Container *pCo
     for (i = 0; i < numberOfContainers; i++)
     {
         // print ID
-        fprintf(*pOutputFile, "%lu: ", pContainers[i].id);
+        fprintf(*pOutputFile, "%ld: ", pContainers[i].id);
         
         // print "0" for no boxes
         if (pContainers[i].numberOfBoxes == 0)
@@ -191,9 +191,9 @@ void writeToOutputFile(char* pOutputFilename, FILE **pOutputFile, Container *pCo
         for (j = 0; j < pContainers[i].numberOfBoxes; j++)
         {
             if (j == pContainers[i].numberOfBoxes - 1)
-                fprintf(*pOutputFile, "%lu\n", pContainers[i].boxSizes[j]);
+                fprintf(*pOutputFile, "%ld\n", pContainers[i].boxSizes[j]);
             else
-                fprintf(*pOutputFile, "%lu ", pContainers[i].boxSizes[j]);
+                fprintf(*pOutputFile, "%ld ", pContainers[i].boxSizes[j]);
         }
     }
 }
