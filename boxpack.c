@@ -15,11 +15,11 @@
 /* STRUCTURES */
 typedef struct
 {
-    int id;
-    int capacity;
+    unsigned long id;
+    unsigned long capacity;
     
-    int numberOfBoxes;
-    int *boxSizes;
+    unsigned long numberOfBoxes;
+    unsigned long *boxSizes;
 
     char wasChecked;    // 1 == false && 0 == true
 } Container;
@@ -31,10 +31,10 @@ typedef enum
 } FitTypes;
 
 /* GLOBAL */
-size_t numberOfContainers = 0;
-size_t numberOfBoxData = 0;
-size_t numberOfOnlyBoxSizes = 0;
-size_t lastSelectedContainerId = 0;
+unsigned long numberOfContainers = 0;
+unsigned long numberOfBoxData = 0;
+unsigned long numberOfOnlyBoxSizes = 0;
+unsigned long lastSelectedContainerId = 0;
 FitTypes fitType = FIRST_FIT;
 
 /* PROTOTYPES */
@@ -169,7 +169,7 @@ void writeToOutputFile(char* pOutputFilename, FILE **pOutputFile, Container *pCo
     for (i = 0; i < numberOfContainers; i++)
     {
         // print ID
-        fprintf(*pOutputFile, "%d: ", pContainers[i].id);
+        fprintf(*pOutputFile, "%lu: ", pContainers[i].id);
         
         // print "0" for no boxes
         if (pContainers[i].numberOfBoxes == 0)
@@ -191,9 +191,9 @@ void writeToOutputFile(char* pOutputFilename, FILE **pOutputFile, Container *pCo
         for (j = 0; j < pContainers[i].numberOfBoxes; j++)
         {
             if (j == pContainers[i].numberOfBoxes - 1)
-                fprintf(*pOutputFile, "%d\n", pContainers[i].boxSizes[j]);
+                fprintf(*pOutputFile, "%lu\n", pContainers[i].boxSizes[j]);
             else
-                fprintf(*pOutputFile, "%d ", pContainers[i].boxSizes[j]);
+                fprintf(*pOutputFile, "%lu ", pContainers[i].boxSizes[j]);
         }
     }
 }
@@ -276,7 +276,7 @@ void getCounts(FILE **pInputFile)
             // seperate line to get FIRST element
             // needs to be handled manually because of strtok!
             pLineSeperated = strtok(pTmpLine, " \n");
-            
+
             // increment number of box data
             numberOfBoxData = inlineAddition(numberOfBoxData, 1);
 
@@ -289,7 +289,7 @@ void getCounts(FILE **pInputFile)
                     if (strcmp(pLineSeperated, "ff") != 0 && strcmp(pLineSeperated, "bf") != 0
                         && strcmp(pLineSeperated, "nf") != 0 && strcmp(pLineSeperated, "awf") != 0)
                     {
-                        fputs("Error: Invalid box data! Only supported fit-types allowed.\n", stderr);
+                        fputs("Error: Invalid fit-type! Only supported fit-types allowed.\n", stderr);
                         exit(1);
                     }
                 }
@@ -300,7 +300,7 @@ void getCounts(FILE **pInputFile)
                         && strcmp(pLineSeperated, "nf") != 0 && strcmp(pLineSeperated, "awf") != 0
                         && strtol(pLineSeperated, NULL, 10) < 0) 
             {
-                fputs("Error: Invalid box data! Only Integers > 0 allowed.\n", stderr);
+                fputs("Error: Invalid box size! Only Integers > 0 allowed.\n", stderr);
                 exit(1);
             }
             else
@@ -310,17 +310,31 @@ void getCounts(FILE **pInputFile)
             while (pLineSeperated != NULL)
             {
                 pLineSeperated = strtok(NULL, " \n");
-            
+
                 // increment number of box-data and only-box-sizes
                 numberOfBoxData = inlineAddition(numberOfBoxData, 1);
                 if (pLineSeperated != NULL)
                 {                    
                     // check for valid box-size
+                    size_t i;
+                    for (i = 0; i < strlen(pLineSeperated); i++)
+                    {             
+                        if (!isdigit(pLineSeperated[i]))
+                        {
+                            if (strcmp(pLineSeperated, "ff") != 0 && strcmp(pLineSeperated, "bf") != 0
+                                && strcmp(pLineSeperated, "nf") != 0 && strcmp(pLineSeperated, "awf") != 0)
+                            {
+                                fputs("Error: Invalid fit-type! Only supported fit-types allowed.\n", stderr);
+                                exit(1);
+                            }
+                        }
+                    }
+
                     if (strcmp(pLineSeperated, "ff") != 0 && strcmp(pLineSeperated, "bf") != 0
                                 && strcmp(pLineSeperated, "nf") != 0 && strcmp(pLineSeperated, "awf") != 0
                                 && strtol(pLineSeperated, NULL, 10) < 0) 
                     {
-                        fputs("Error: Invalid box data! Only Integers > 0 allowed.\n", stderr);
+                        fputs("Error: Invalid box size! Only Integers > 0 allowed.\n", stderr);
                         exit(1);
                     }
                     else
@@ -586,7 +600,12 @@ Container* fitBoxes(char *pLineSeperated, Container *pContainers)
                 
                     maxContainerCapacity = max(maxContainerCapacity, pContainers[i].capacity);
                     if (maxContainerCapacity == pContainers[i].capacity)
-                        idOfMaxContainerCapacity = pContainers[i].id;
+                    {
+                        if (pContainers[idOfMaxContainerCapacity].capacity == pContainers[i].capacity)
+                            idOfMaxContainerCapacity = min(idOfMaxContainerCapacity, pContainers[i].capacity);
+                        else
+                            idOfMaxContainerCapacity = pContainers[i].id;
+                    }
                 }
                 
                 // Second max capacity
@@ -596,7 +615,12 @@ Container* fitBoxes(char *pLineSeperated, Container *pContainers)
                     
                     secondMaxContainerCapacity = max(secondMaxContainerCapacity, pContainers[i].capacity);
                     if (secondMaxContainerCapacity == pContainers[i].capacity)
-                        idOfSecondMaxContainerCapacity = pContainers[i].id;
+                    {
+                        if (pContainers[idOfSecondMaxContainerCapacity].capacity == pContainers[i].capacity)
+                            idOfSecondMaxContainerCapacity = min(idOfSecondMaxContainerCapacity, pContainers[i].capacity);
+                        else
+                            idOfSecondMaxContainerCapacity = pContainers[i].id;
+                    }
                 }
                 
                 // store box in second-max-container
