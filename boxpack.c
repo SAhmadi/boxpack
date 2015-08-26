@@ -98,11 +98,8 @@ int main(int argc, char** argv)
     pContainers = processInputFile(&pInputFile, pContainers);       // init Containers
     if (pContainers == NULL) 
     {
-        printf("main received NULL\n");
         fclose(pInputFile);
-
         free(pContainers);
-        printf("app termination\n");
         exit(1);
     }
    
@@ -450,11 +447,9 @@ Container* processInputFile(FILE **pInputFile, Container *pContainers)
             pContainers = fitBoxes(pLineSeperated, pContainers);
             if (pContainers == NULL) 
             {
-                printf("processInput received NULL\n");
                 free(pLine);
                 free(pContainers);
                 free(pTmpLine);
-                printf("processInput send NULL\n");
                 return NULL;
             }
 
@@ -469,11 +464,9 @@ Container* processInputFile(FILE **pInputFile, Container *pContainers)
                 pContainers = fitBoxes(pLineSeperated, pContainers);
                 if (pContainers == NULL) 
                 {
-                    printf("processInput received NULL\n");
                     free(pLine);
                     free(pContainers);
                     free(pTmpLine);
-                    printf("processInput send NULL\n");
                     return NULL;
                 }
                 
@@ -542,7 +535,6 @@ Container* fitBoxes(char *pLineSeperated, Container *pContainers)
                         free(pContainers[i].boxSizes);
                     }
                     free(pContainers);
-                    printf("return NULL from FF\n");
                     return NULL;
                 }
             }
@@ -598,7 +590,6 @@ Container* fitBoxes(char *pLineSeperated, Container *pContainers)
                         free(pContainers[i].boxSizes);
                     }
                     free(pContainers);
-                    printf("return NULL from BF\n");
                     return NULL;
                 }
             }
@@ -642,7 +633,6 @@ Container* fitBoxes(char *pLineSeperated, Container *pContainers)
                                 free(pContainers[i].boxSizes);
                             }
                             free(pContainers);
-                            printf("return NULL from NF\n");
                             return NULL;
                         }
                     }
@@ -674,13 +664,18 @@ Container* fitBoxes(char *pLineSeperated, Container *pContainers)
                     maxContainerCapacity = max(maxContainerCapacity, pContainers[i].capacity);
                     if (maxContainerCapacity == pContainers[i].capacity)
                     {
-                        if (pContainers[idOfMaxContainerCapacity].capacity == inlineSubtraction(pContainers[idOfMaxContainerCapacity].capacity, strtol(pLineSeperated, NULL, 10)))
-                            idOfMaxContainerCapacity = min(idOfMaxContainerCapacity, pContainers[i].id);
-                        else
-                            idOfMaxContainerCapacity = pContainers[i].id;
+                        idOfMaxContainerCapacity = pContainers[i].id;
+                        size_t j;
+                        for (j = 0; j < numberOfContainers; j++)
+                        {
+                            if (pContainers[j].capacity == pContainers[i].capacity)
+                            {
+                                idOfMaxContainerCapacity = min(pContainers[j].id, pContainers[i].id);
+                                break;
+                            }
+                        }
                     }
                 }
-                
                 // Second max capacity
                 for (i = 0; i < numberOfContainers; i++)
                 {
@@ -689,13 +684,18 @@ Container* fitBoxes(char *pLineSeperated, Container *pContainers)
                     secondMaxContainerCapacity = max(secondMaxContainerCapacity, pContainers[i].capacity);
                     if (secondMaxContainerCapacity == pContainers[i].capacity)
                     {
-                        if (pContainers[idOfSecondMaxContainerCapacity].capacity == inlineSubtraction(pContainers[idOfSecondMaxContainerCapacity].capacity, strtol(pLineSeperated, NULL, 10)))
-                            idOfSecondMaxContainerCapacity = min(idOfSecondMaxContainerCapacity, pContainers[i].id);
-                        else
-                            idOfSecondMaxContainerCapacity = pContainers[i].id;
+                        idOfSecondMaxContainerCapacity = pContainers[i].id;
+                        size_t j;
+                        for (j = 0; j < numberOfContainers; j++)
+                        {
+                            if (pContainers[j].capacity == pContainers[i].capacity)
+                            {
+                                idOfSecondMaxContainerCapacity = min(pContainers[j].id, pContainers[i].id);
+                                break;
+                            }
+                        }
                     }
                 }
-
                 // store box in second-max-container
                 if (pContainers[idOfSecondMaxContainerCapacity].capacity >= strtol(pLineSeperated, NULL, 10))
                 {
@@ -726,7 +726,6 @@ Container* fitBoxes(char *pLineSeperated, Container *pContainers)
                         free(pContainers[i].boxSizes);
                     }
                     free(pContainers);
-                    printf("return NULL from AWF\n");
                     return NULL;
                 }
             }
